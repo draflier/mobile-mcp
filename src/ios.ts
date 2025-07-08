@@ -216,18 +216,18 @@ export class IosManager {
 	}
 
 	public listDevices(): IosDevice[] {
-		if (!this.isGoIosInstalled()) {
-			console.error("go-ios is not installed, no physical iOS devices can be detected");
-			return [];
-		}
+		// if (!this.isGoIosInstalled()) {
+		// 	console.error("go-ios is not installed, no physical iOS devices can be detected");
+		// 	return [];
+		// }
 
-		const output = execFileSync(getGoIosPath(), ["list"]).toString();
-		const json: ListCommandOutput = JSON.parse(output);
-		const devices = json.deviceList.map(device => ({
-			deviceId: device,
-			deviceName: this.getDeviceName(device),
-		}));
+		// const output = execFileSync(getGoIosPath(), ["list"]).toString();
+		// const json: ListCommandOutput = JSON.parse(output);
+		// const devices = json.deviceList.map(device => ({
+		// 	deviceId: device,
+		// 	deviceName: this.getDeviceName(device),
+		// }));
 
-		return devices;
+		return [];
 	}
 }

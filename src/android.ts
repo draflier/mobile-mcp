@@ -141,8 +141,8 @@ export class AndroidRobot implements Robot {
 				break;
 			case "down":
 				x0 = x1 = centerX;
-				y0 = Math.floor(screenSize.height * 0.20);
-				y1 = Math.floor(screenSize.height * 0.80);
+				y0 = Math.floor(screenSize.height * 0.20) + 300;
+				y1 = Math.floor(screenSize.height * 0.80) + 300;
 				break;
 			case "left":
 				x0 = Math.floor(screenSize.width * 0.80);
@@ -157,6 +157,7 @@ export class AndroidRobot implements Robot {
 			default:
 				throw new ActionableError(`Swipe direction "${direction}" is not supported`);
 		}
+		console.log(`Swiping from (${x0}, ${y0}) to (${x1}, ${y1}) in direction "${direction}"`);
 
 		this.adb("shell", "input", "swipe", `${x0}`, `${y0}`, `${x1}`, `${y1}`, "1000");
 	}
@@ -252,6 +253,115 @@ export class AndroidRobot implements Robot {
 
 	public async terminateApp(packageName: string): Promise<void> {
 		this.adb("shell", "am", "force-stop", packageName);
+	}
+
+	/**
+	 * Books a badminton court in the soprop app.
+	 * @param date The date for booking (format must be "22 Jul 2025").
+	 * @param startTimeSlot The starting time slot for booking (format: HH:mm).
+	 * @param endTimeSlot The ending time slot for booking (format: HH:mm).
+	 * @returns Promise<void>
+	 * @throws ActionableError if booking fails.
+	 */
+	public async bookBadmintonCourt(date: string, startTimeSlot: string, endTimeSlot: string): Promise<void> {
+		const packageName = "com.hongyip.soprop.app"; // Package name for soprop app
+		await this.launchApp(packageName);
+		
+		// Wait for the app to load
+		await new Promise(resolve => setTimeout(resolve, 5000));
+		
+		// Navigate to booking section
+		await this.tap(100, 1000); // Tap on a general area to ensure app focus
+		
+		// Wait for booking page to load
+		await new Promise(resolve => setTimeout(resolve, 1000));
+
+		// Click on the badminton tab
+		await this.tap(570, 741); // Tap Badminton tab
+		// Wait for tab content to load
+		await new Promise(resolve => setTimeout(resolve, 1000));
+
+		// Click on the Badminton(1) option
+		await this.tap(510, 953); // Tap Badminton(1)
+		// Wait for selection to load
+		await new Promise(resolve => setTimeout(resolve, 1000));
+
+		// Click on the date field to open the calendar
+		await this.tap(510, 679); // Tap on the date field (center of the date TextView)
+		// Wait for calendar to open
+		await new Promise(resolve => setTimeout(resolve, 2000));
+
+		// Select the calender selector element
+		let elements = await this.getElementsOnScreen();
+		let calSelector = elements.find(el => el.identifier?.includes("tv_selected_date"));
+		if (!calSelector) {
+			throw new ActionableError("Could not find calendar selector element");
+		}
+		else
+		{
+			// Tap on the calendar selector to open the date picker
+			await this.tap(
+				calSelector.rect.x + calSelector.rect.width / 2,
+				calSelector.rect.y + calSelector.rect.height / 2
+			);
+		}
+
+		elements = await this.getElementsOnScreen();
+		let dateElement = elements.find(el => el.identifier?.includes(date));
+		if (!dateElement) {
+			throw new ActionableError("Could not find calendar selector element");
+		}
+		else
+		{
+			// Tap on the calendar selector to open the date picker
+			await this.tap(
+				dateElement.rect.x + dateElement.rect.width / 2,
+				dateElement.rect.y + dateElement.rect.height / 2
+			);
+		}
+
+
+
+		// Confirm date selection by clicking OK button
+		await this.tap(540, 1808); // Tap OK button (assumed coordinates)
+		// Wait for calendar to close and date to update
+		await new Promise(resolve => setTimeout(resolve, 2000));
+
+		// Look for the desired time slot
+		let maxSwipes = 5; // Prevent infinite swiping
+		let swipeCount = 0;
+		let timeSlotFound = false;
+		// Format the target time slot text as "HH:mm - HH:mm"
+		const startFormatted = startTimeSlot.includes(":") ? startTimeSlot : `${startTimeSlot}:00`;
+		const endFormatted = endTimeSlot.includes(":") ? endTimeSlot : `${endTimeSlot}:00`;
+		const targetTimeSlotText = `${startFormatted} - ${endFormatted}`;
+
+		while (!timeSlotFound && swipeCount < maxSwipes) {
+			const elements = await this.getElementsOnScreen();
+			const timeSlotElement = elements.find(el => 
+				el.text?.includes(targetTimeSlotText) || el.label?.includes(targetTimeSlotText)
+			);
+
+			if (timeSlotElement) {
+				// Time slot found, tap on it
+				await this.tap(
+					timeSlotElement.rect.x + timeSlotElement.rect.width / 2,
+					timeSlotElement.rect.y + timeSlotElement.rect.height / 2
+				);
+				timeSlotFound = true;
+				break;
+			} else {
+				// Time slot not found, swipe up to see more
+				await this.swipe("up");
+				swipeCount++;
+				// Wait for swipe to complete
+				await new Promise(resolve => setTimeout(resolve, 1000));
+			}
+		}
+
+		if (!timeSlotFound) {
+			throw new ActionableError(`Could not find time slot ${targetTimeSlotText} after ${maxSwipes} swipes`);
+		}
 	}
 
 	public async openUrl(url: string): Promise<void> {

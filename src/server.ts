@@ -488,6 +488,24 @@ export const createMcpServer = (): McpServer => {
 		}
 	);
 
+	tool(
+		"mobile_book_badminton_court",
+		"Book a badminton court in the soprop app on an Android device.",
+		{
+			date: z.string().describe("The date when the booking is made (format: dd MMM yyyy, e.g. 01 Jul 2023)"),
+			startTimeSlot: z.string().describe("The starting time slot for booking (format: HH:mm)"),
+			endTimeSlot: z.string().describe("The ending time slot for booking (format: HH:mm)")
+		},
+		async ({ date, startTimeSlot,endTimeSlot }) => {
+			requireRobot();
+			if (!(robot instanceof AndroidRobot)) {
+				throw new ActionableError("This tool is only supported on Android devices. Please select an Android device using mobile_use_device tool.");
+			}
+			await robot.bookBadmintonCourt(date, startTimeSlot, endTimeSlot);
+			return `Successfully booked badminton court ${date} from ${startTimeSlot} to ${endTimeSlot} in the soprop app.`;
+		}
+	);
+
 	// async check for latest agent version
 	checkForLatestAgentVersion().then();
 
